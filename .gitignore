@@ -1,0 +1,15 @@
+# 📦 Environment (The big stuff)
+.venv/
+venv/
+env/
+
+# 🧪 Data & Vault (Your personal money data)
+crypto_pool/
+**/*.db
+**/*.json
+
+
+# 🐍 Python Junk
+__pycache__/
+*.pyc
+.DS_Store
