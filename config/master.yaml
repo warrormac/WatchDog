@@ -81,5 +81,5 @@ broker:
     phone_number: "+51972711829"  # Your number including the + and country code
     api_key: "8338715"
 
-  discord_webhook_url: "https://discord.com/api/webhooks/1496487052127244400/THa-e2TLnLAKLZ-yl_RR613yNevQ39S5Qbo3t7B5I6zR03HY4n7dM2CmbOs8eSPDPF-Z"
-  cooldown_seconds: 300
+    discord_webhook_url: "https://discord.com/api/webhooks/1496487052127244400/THa-e2TLnLAKLZ-yl_RR613yNevQ39S5Qbo3t7B5I6zR03HY4n7dM2CmbOs8eSPDPF-Z"
+    cooldown_seconds: 300

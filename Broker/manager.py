@@ -72,57 +72,110 @@ class BrokerService:
         return None
 
     async def send_discord(self, symbol, advice, confidence, price, warning):
-        """Sends a color-coded embed to Discord."""
-        if not self.discord_url: return False
+        """Sends a high-visibility, color-coded alert to Discord."""
+        if not self.discord_url:
+            logger.error("❌ Discord Error: No Webhook URL found in config!")
+            return False
         
-        # Green for Buy/Growth, Red for Sell/Warning
-        color = 0x2ecc71 if "BUY" in advice or "GROWTH" in advice else 0xe74c3c
+        # 1. Logic to categorize the alert for visual clarity
+        advice_upper = advice.upper()
         
+        if "BUY" in advice_upper or "OPEN POSITION" in advice_upper:
+            action_header = "🟢 ACTION: BUY / LONG"
+            color = 0x2ecc71  # Emerald Green
+        elif any(x in advice_upper for x in ["SELL", "EXIT", "STOP LOSS", "DROP"]):
+            action_header = "🔴 ACTION: SELL / EXIT"
+            color = 0xe74c3c  # Alizarin Red
+        else:
+            action_header = "🟠 ACTION: HOLD / WATCH"
+            color = 0xf1c40f  # Yellow
+            
+        # 2. Build the Embed Payload
         payload = {
             "embeds": [{
-                "title": f"🛡️ WATCHDOG ALERT: {symbol}",
+                "title": f"{action_header} | {symbol}",
+                "description": f"💰 **Market Price:** `${price:,.4f}`",
                 "color": color,
                 "fields": [
-                    {"name": "🧠 Confidence", "value": f"{confidence:.2f}", "inline": True},
-                    {"name": "🎯 Market Price", "value": f"${price:,.4f}", "inline": True},
-                    {"name": "🔍 DEEP ANALYZE", "value": warning, "inline": False},
-                    {"name": "📢 STRATEGY", "value": advice, "inline": False}
+                    {
+                        "name": "🎯 Strategy Verdict", 
+                        "value": f"```yaml\n{advice}\n```", 
+                        "inline": False
+                    },
+                    {
+                        "name": "🧠 Oracle Confidence", 
+                        "value": f"`{confidence:.2f}`", 
+                        "inline": True
+                    },
+                    {
+                        "name": "🔍 Deep Analyze", 
+                        "value": f"**{warning}**", 
+                        "inline": True
+                    }
                 ],
-                "footer": {"text": "Watchdog Trading Sentinel"},
+                "footer": {
+                    "text": f"Watchdog Sentinel | Targets: {self.targets['profit']*100}% P / {self.targets['loss']*100}% L"
+                },
                 "timestamp": datetime.utcnow().isoformat()
             }]
         }
 
+        # 3. Send to Discord via aiohttp
         async with aiohttp.ClientSession() as session:
-            async with session.post(self.discord_url, json=payload) as response:
-                return response.status in [200, 204]
+            try:
+                async with session.post(self.discord_url, json=payload) as response:
+                    if response.status in [200, 204]:
+                        return True
+                    else:
+                        logger.error(f"❌ Discord API Error: {response.status}")
+                        return False
+            except Exception as e:
+                logger.error(f"❌ Connection Error sending to Discord: {e}")
+                return False
 
     async def process_signals(self):
-        """Main loop: Fetches signals and alerts via Discord."""
+        """Main loop with Trace Logging to find bottlenecks."""
         new_signals = self.db.get_unprocessed_signals()
-        if not new_signals: return
+        
+        # TRACE: See if we are even finding signals in the DB
+        if not new_signals:
+            # logger.info("🔎 No new signals found in Vault.") # Optional: can be spammy
+            return
+
+        logger.info(f"📬 Found {len(new_signals)} unprocessed signals. Analyzing...")
 
         portfolio = self.load_portfolio()
         for s in new_signals:
+            # TRACE: What did the Oracle actually say?
+            logger.info(f"   --> Checking {s['symbol']}: Direction={s['direction']}, Conf={s['confidence']:.2f}")
+            
             advice = self.get_strategic_advice(s['symbol'], s['price'], s['direction'], s['confidence'], portfolio)
+            
             if not advice:
+                # Better log to explain why we ignore it
+                reason = "Target not hit" if s['symbol'] in portfolio['positions'] else "Short signal ignored"
+                logger.info(f"   ❌ Rejected {s['symbol']}: {reason}.")
                 self.db.mark_signal_processed(s['id'])
                 continue
 
             # Cooldown check
             last_time = self.last_alert_times.get(s['symbol'], 0)
             if time.time() - last_time < self.alert_cooldown:
+                logger.info(f"   ⏳ Rejected: {s['symbol']} is in cooldown.")
                 self.db.mark_signal_processed(s['id'])
                 continue
 
+            # If it reaches here, it SHOULD send to Discord
+            logger.info(f"   🚀 Strategy Accepted! Sending Discord alert for {s['symbol']}...")
             success = await self.send_discord(s['symbol'], advice, s['confidence'], s['price'], s.get('warning', 'None'))
-            self.db.mark_signal_processed(s['id']) # Always mark processed to prevent loops
+            
+            self.db.mark_signal_processed(s['id'])
             
             if success:
                 self.last_alert_times[s['symbol']] = time.time()
-                logger.info(f"✅ Discord alert sent for {s['symbol']}")
+                logger.info("   ✅ Discord alert delivered.")
             
-            await asyncio.sleep(2) # Prevent API rate limits
+            await asyncio.sleep(2)
 
     async def run_forever(self):
         logger.info(f"Broker Watchdog active. Target: {self.targets['profit']*100}% Profit / Stop: {self.targets['loss']*100}% Loss.")

@@ -33,7 +33,7 @@ Update config/master.yaml with your API keys and Discord Webhook:
 Run each service in a separate terminal to keep the Watchdog active:
 
    ```
-   python Vault/historian.py  # Sync History
+   python Past/historian.py  # Sync History
    python Present/oracle.py    # Listen for Signals
    python Broker/manager.py    # Send Alerts
 
