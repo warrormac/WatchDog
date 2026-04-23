@@ -13,3 +13,7 @@ crypto_pool/
 __pycache__/
 *.pyc
 .DS_Store
+
+# 🛠️ Config
+config/master.yaml
+config/strategy.yaml
