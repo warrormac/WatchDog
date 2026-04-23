@@ -1,110 +1,110 @@
 import json
 import os
-import yaml
+from datetime import datetime
 
-def load_config():
-    with open("config/master.yaml", "r") as f:
-        return yaml.safe_load(f)
+PF_PATH = "crypto_pool/portfolio.json"
 
-def load_portfolio(path):
-    if os.path.exists(path):
-        with open(path, "r") as f:
+def load_portfolio():
+    if os.path.exists(PF_PATH):
+        with open(PF_PATH, "r") as f:
             return json.load(f)
     return {"USD": 100.0, "total_earnings_usd": 0.0, "positions": {}}
 
-def save_portfolio(path, data):
-    with open(path, "w") as f:
-        json.dump(data, f, indent=4)
+def save_portfolio(pf):
+    with open(PF_PATH, "w") as f:
+        json.dump(pf, f, indent=4)
 
 def run_logger():
-    config = load_config()
-    pf_path = config["vault"]["portfolio_path"]
-    pf = load_portfolio(pf_path)
+    pf = load_portfolio()
+    print("\n" + "="*30)
+    print("      🛡️ WATCHDOG LEDGER")
+    print("="*30)
+    print(f"💰 Available Cash: ${pf['USD']:.2f}")
+    print(f"📈 Total Earnings: ${pf['total_earnings_usd']:.2f}")
+    print("-" * 30)
 
-    print(f"\n--- 🛡️ WATCHDOG LEDGER ---")
-    print(f"Available Cash: ${pf['USD']:.2f}")
-    print(f"Total Earnings: ${pf['total_earnings_usd']:.2f}")
-    print("-" * 25)
+    print("[1] BUY (Add New Lot)")
+    print("[2] SELL (Close Specific Lot)")
+    print("[3] STATUS (Detailed Holdings)")
+    print("[4] EXIT")
+    choice = input("\nSelect Option: ")
 
-    # 1. SELECT ACTION
-    print("\n[1] BUY (Add Position)")
-    print("[2] SELL (Close Position)")
-    action_choice = input("Select Option (1 or 2): ")
-    action = "buy" if action_choice == "1" else "sell"
+    # --- 🟢 OPTION 1: LOG A NEW BUY ---
+    if choice == "1":
+        coin = input("Enter Coin Symbol (e.g., BTCUSDT): ").upper()
+        amount = float(input(f"Amount of {coin} bought: "))
+        price = float(input(f"Price per {coin}: "))
+        cost = amount * price
 
-    # 2. SELECT COIN
-    existing_coins = list(pf["positions"].keys())
-    print("\nExisting Coins:")
-    for i, coin in enumerate(existing_coins):
-        amount = pf["positions"][coin]["amount"]
-        print(f"[{i+1}] {coin} (Holdings: {amount})")
-    
-    print(f"[{len(existing_coins) + 1}] NEW COIN (Type manually)")
-    
-    coin_choice = int(input("Select Coin Number: "))
-    
-    if coin_choice <= len(existing_coins):
-        symbol = existing_coins[coin_choice - 1]
-    else:
-        symbol = input("Enter New Symbol (e.g., ETHUSDT): ").upper()
-
-    # 3. ENTER TRADE DATA
-    amount = float(input(f"Amount of {symbol}: "))
-    price = float(input(f"Price per {symbol}: "))
-    total_cost = amount * price
-
-    if action == "buy":
-        # Calculate Weighted Average Cost Basis
-        if symbol not in pf["positions"]:
-            pf["positions"][symbol] = {"amount": 0.0, "cost_basis": 0.0, "usd_value": 0.0}
-        
-        current_data = pf["positions"][symbol]
-        total_old_cost = current_data["amount"] * current_data["cost_basis"]
-        total_new_cost = amount * price
-        
-        # New Total Amount
-        new_amount = current_data["amount"] + amount
-        
-        # Weighted Average: (Old Total Cost + New Total Cost) / New Total Amount
-        new_basis = (total_old_cost + total_new_cost) / new_amount
-        
-        pf["USD"] -= total_new_cost
-        pf["positions"][symbol]["amount"] = new_amount
-        pf["positions"][symbol]["cost_basis"] = new_basis
-        pf["positions"][symbol]["usd_value"] = new_amount * new_basis
-        
-        print(f"✅ LOGGED: Bought {amount} {symbol} at ${price:.4f}. New Average Basis: ${new_basis:.4f}")
-
-    elif action == "sell":
-        if symbol not in pf["positions"] or pf["positions"][symbol]["amount"] <= 0:
-            print("❌ ERROR: You don't own this coin!")
+        if cost > pf["USD"]:
+            print(f"❌ Error: Insufficient balance. Cost: ${cost:.2f} | Wallet: ${pf['USD']:.2f}")
             return
 
-        current_data = pf["positions"][symbol]
-        # We use the cost_basis to calculate profit on the portion sold
-        original_investment_value = current_data["cost_basis"] * amount
-        trade_profit = (amount * price) - original_investment_value
+        if coin not in pf["positions"] or not isinstance(pf["positions"][coin], list):
+            pf["positions"][coin] = []
         
-        pf["USD"] += (amount * price)
-        pf["total_earnings_usd"] += trade_profit
-        
-        # Reduce amount
-        pf["positions"][symbol]["amount"] -= amount
-        
-        # CLEANUP: If amount is near zero, reset everything to 0
-        if pf["positions"][symbol]["amount"] <= 0.00000001:
-            pf["positions"][symbol]["amount"] = 0.0
-            pf["positions"][symbol]["cost_basis"] = 0.0
-            pf["positions"][symbol]["usd_value"] = 0.0
-        else:
-            # Update the remaining USD value based on the original basis
-            pf["positions"][symbol]["usd_value"] = pf["positions"][symbol]["amount"] * current_data["cost_basis"]
-        
-        print(f"💰 LOGGED: Sold {amount} {symbol}. Trade Profit: ${trade_profit:.4f}")
+        new_lot = {
+            "amount": amount,
+            "price": price,
+            "usd_value": cost,
+            "timestamp": int(datetime.now().timestamp())
+        }
+        pf["positions"][coin].append(new_lot)
+        pf["USD"] -= cost
+        save_portfolio(pf)
+        print(f"✅ Successfully logged Lot #{len(pf['positions'][coin])} for {coin}.")
 
-    # 5. COMMIT TO VAULT
-    save_portfolio(pf_path, pf)
-    print("--- Vault Updated Successfully ---\n")
+    # --- 🔴 OPTION 2: LOG A SELL ---
+    elif choice == "2":
+        active_coins = [c for c, lots in pf["positions"].items() if len(lots) > 0]
+        if not active_coins:
+            print("No active positions to sell.")
+            return
+
+        for idx, symbol in enumerate(active_coins):
+            print(f"[{idx}] {symbol}")
+
+        coin_idx = int(input("\nSelect Coin Index: "))
+        symbol = active_coins[coin_idx]
+        lots = pf["positions"][symbol]
+
+        for i, lot in enumerate(lots):
+            print(f"  [{i}] Lot #{i+1}: {lot['amount']} @ ${lot['price']:,.2f}")
+
+        lot_idx = int(input("\nSelect Lot Index to CLOSE: "))
+        sell_price = float(input(f"Actual Selling Price for {symbol}: "))
+        
+        lot = lots.pop(lot_idx)
+        revenue = sell_price * lot['amount']
+        profit = revenue - (lot['price'] * lot['amount'])
+
+        pf["USD"] += revenue
+        pf["total_earnings_usd"] += profit
+        save_portfolio(pf)
+        print(f"✅ Lot Closed. Revenue: ${revenue:.2f} | Profit: ${profit:.2f}")
+
+    # --- 📊 OPTION 3: STATUS BREAKDOWN ---
+    elif choice == "3":
+        print("\n--- 📋 DETAILED HOLDINGS ---")
+        found_holdings = False
+        for symbol, lots in pf["positions"].items():
+            if lots:
+                found_holdings = True
+                total_qty = sum(l['amount'] for l in lots)
+                total_cost = sum(l['usd_value'] for l in lots)
+                avg_price = total_cost / total_qty
+                print(f"\n🔹 {symbol}")
+                print(f"   Total Qty:  {total_qty:,.8f}")
+                print(f"   Avg Price:  ${avg_price:,.4f}")
+                print(f"   Total Cost: ${total_cost:,.2f}")
+                print(f"   Open Lots:  {len(lots)}")
+        
+        if not found_holdings:
+            print("Your portfolio is currently empty.")
+        print("\n" + "="*30)
+
+    elif choice == "4":
+        return
 
 if __name__ == "__main__":
     run_logger()

@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
 import logging
-from typing import List, Literal, Dict, Any, Optional
-import pandas as pd
+from typing import List, Literal, Dict, Any
+import pandas as pd  # type: ignore
 from patterns import (
-    PatternSignal, is_doji, is_hammer, is_inverted_hammer, is_marubozu,
+    is_doji, is_hammer, is_inverted_hammer, is_marubozu,
     is_spinning_top, is_engulfing, is_piercing_line, is_tweezers,
     is_star, is_soldiers_crows, is_inside_bar
 )
@@ -32,10 +32,6 @@ class SignalScorer:
         """
         if df.empty:
             return FinalScore(symbol, timeframe, "neutral", 0.0)
-
-        rsi_val = df.iloc[-1].get("rsi", 0)
-        ema9 = df.iloc[-1].get("ema_9", 0)
-        # logger.info(f"Checking {symbol} {timeframe} - RSI: {rsi_val}, EMA9: {ema9}, Rows: {len(df)}")
         
         long_score = 0.0
         short_score = 0.0

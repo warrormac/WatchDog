@@ -1,5 +1,3 @@
-import pandas as pd
-import numpy as np
 
 class DeepAnalyzer:
     def __init__(self, config):

@@ -1,6 +1,6 @@
-import pandas as pd
-import pandas_ta_classic as ta
-from typing import Dict, Any
+import pandas as pd # type: ignore
+import pandas_ta_classic as ta # type: ignore
+ 
 
 def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     """

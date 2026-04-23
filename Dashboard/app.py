@@ -1,8 +1,8 @@
-import streamlit as st
+import streamlit as st # type: ignore
 import json
-import pandas as pd
+import pandas as pd # type: ignore
 import sqlite3
-import requests
+import requests   # type: ignore
 import os
 import time
 from datetime import datetime
@@ -23,13 +23,14 @@ def load_portfolio():
         try:
             with open(PF_PATH, "r") as f:
                 return json.load(f)
-        except:
+        except:  # noqa: E722
             pass
     return {"USD": 100.0, "positions": {}}
 
 def get_live_prices(symbols):
     prices = {}
-    if not symbols: return prices
+    if not symbols: 
+        return prices
     try:
         url = "https://api.binance.com/api/3/ticker/price"
         resp = requests.get(url, timeout=5).json()
@@ -49,7 +50,7 @@ def get_latest_signals():
             "SELECT symbol, direction, price, confidence, ts FROM signals ORDER BY id DESC LIMIT 10", 
             conn
         )
-    except:
+    except:  # noqa: E722
         df = pd.DataFrame(columns=['symbol', 'direction', 'price', 'confidence', 'ts'])
     finally:
         conn.close()

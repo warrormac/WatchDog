@@ -1,6 +1,6 @@
 import asyncio
-import aiohttp
-import yaml
+import aiohttp # type: ignore
+import yaml  # type: ignore
 import logging
 import os
 import sys

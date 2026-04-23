@@ -1,5 +1,4 @@
-import pandas as pd
-import numpy as np
+import pandas as pd # type: ignore
 from typing import Optional, Literal
 from dataclasses import dataclass
 
@@ -31,7 +30,8 @@ def is_doji(df: pd.DataFrame, threshold: float = 0.1) -> Optional[PatternSignal]
     """
     Doji: Body is very small relative to the total range.
     """
-    if len(df) < 1: return None
+    if len(df) < 1: 
+        return None
     body, candle_range, _, _, _ = get_candle_metrics(df)
     
     if candle_range > 0 and (body / candle_range) < threshold:
@@ -43,10 +43,12 @@ def is_hammer(df: pd.DataFrame) -> Optional[PatternSignal]:
     Hammer (at bottom) / Hanging Man (at top).
     Small body, long lower shadow (at least 2x body), little/no upper shadow.
     """
-    if len(df) < 1: return None
+    if len(df) < 1: 
+        return None
     body, candle_range, upper, lower, bullish = get_candle_metrics(df)
     
-    if candle_range == 0: return None
+    if candle_range == 0: 
+        return None
     
     # Lower shadow is at least 2x body and upper shadow is very small
     if lower >= (2 * body) and upper <= (0.1 * candle_range) and body > 0:
@@ -60,10 +62,12 @@ def is_inverted_hammer(df: pd.DataFrame) -> Optional[PatternSignal]:
     Inverted Hammer / Shooting Star.
     Small body, long upper shadow, little/no lower shadow.
     """
-    if len(df) < 1: return None
+    if len(df) < 1: 
+        return None
     body, candle_range, upper, lower, bullish = get_candle_metrics(df)
     
-    if candle_range == 0: return None
+    if candle_range == 0: 
+        return None
     
     if upper >= (2 * body) and lower <= (0.1 * candle_range) and body > 0:
         strength = min(1.0, upper / (candle_range * 0.66))
@@ -74,7 +78,8 @@ def is_marubozu(df: pd.DataFrame) -> Optional[PatternSignal]:
     """
     Marubozu: Full body, virtually no shadows.
     """
-    if len(df) < 1: return None
+    if len(df) < 1: 
+        return None
     body, candle_range, upper, lower, bullish = get_candle_metrics(df)
     
     if candle_range > 0 and (body / candle_range) > 0.9:
@@ -86,10 +91,12 @@ def is_spinning_top(df: pd.DataFrame) -> Optional[PatternSignal]:
     """
     Spinning Top: Small body, long symmetric shadows.
     """
-    if len(df) < 1: return None
+    if len(df) < 1: 
+        return None
     body, candle_range, upper, lower, bullish = get_candle_metrics(df)
     
-    if candle_range == 0: return None
+    if candle_range == 0: 
+        return None
     
     # Small body (less than 1/3 range) and both shadows are significant
     if (body / candle_range) < 0.33 and upper > body and lower > body:
@@ -102,7 +109,8 @@ def is_engulfing(df: pd.DataFrame) -> Optional[PatternSignal]:
     """
     Bullish Engulfing: 2nd candle body completely covers 1st candle body.
     """
-    if len(df) < 2: return None
+    if len(df) < 2: 
+        return None
     
     # Prev candle
     p_body, p_range, _, _, p_bullish = get_candle_metrics(df, -2)
@@ -131,7 +139,8 @@ def is_piercing_line(df: pd.DataFrame) -> Optional[PatternSignal]:
     Piercing Line (Bullish) / Dark Cloud Cover (Bearish).
     2nd candle closes more than halfway into 1st candle's body.
     """
-    if len(df) < 2: return None
+    if len(df) < 2: 
+        return None
     
     # Prev candle
     p_open = df.iloc[-2]['open']
@@ -168,7 +177,8 @@ def is_tweezers(df: pd.DataFrame, tolerance: float = 0.001) -> Optional[PatternS
     """
     Tweezer Top (equal highs) / Tweezer Bottom (equal lows).
     """
-    if len(df) < 2: return None
+    if len(df) < 2: 
+        return None
     
     p_high = df.iloc[-2]['high']
     p_low = df.iloc[-2]['low']
@@ -192,7 +202,8 @@ def is_star(df: pd.DataFrame) -> Optional[PatternSignal]:
     Morning Star (Bullish) / Evening Star (Bearish).
     1st: Large, 2nd: Small (gap), 3rd: Large (reversal).
     """
-    if len(df) < 3: return None
+    if len(df) < 3: 
+        return None
     
     # Candle 1
     m1_body, m1_range, _, _, m1_bullish = get_candle_metrics(df, -3)
@@ -222,7 +233,8 @@ def is_soldiers_crows(df: pd.DataFrame) -> Optional[PatternSignal]:
     Three White Soldiers (Bullish) / Three Black Crows (Bearish).
     Three consecutive large candles of same direction.
     """
-    if len(df) < 3: return None
+    if len(df) < 3: 
+        return None
     
     m1_body, _, _, _, m1_bullish = get_candle_metrics(df, -3)
     m2_body, _, _, _, m2_bullish = get_candle_metrics(df, -2)
@@ -245,7 +257,8 @@ def is_inside_bar(df: pd.DataFrame) -> Optional[PatternSignal]:
     Inside Bar: Current candle is completely within previous candle's range.
     Often a consolidation pattern.
     """
-    if len(df) < 2: return None
+    if len(df) < 2: 
+        return None
     
     p_high = df.iloc[-2]['high']
     p_low = df.iloc[-2]['low']

@@ -1,7 +1,7 @@
 import asyncio
 import json
-import websockets
-import yaml
+import websockets # type: ignore
+import yaml # type: ignore
 import logging
 import os
 import sys
@@ -89,7 +89,8 @@ class OracleService:
                 async with websockets.connect(full_url) as ws:
                     logger.info("WebSocket Connected.")
                     async for message in ws:
-                        if not self.is_running: break
+                        if not self.is_running: 
+                            break
                         data = json.loads(message)
                         normalized = normalize_binance_kline(data)
                         
