@@ -264,7 +264,8 @@ class BrokerService:
             cursor = conn.cursor()
             
             for symbol, lots in positions.items():
-                if not lots: continue
+                if not lots: 
+                    continue
                 
                 # Get the most recent price seen by the Oracle
                 cursor.execute(
@@ -274,7 +275,8 @@ class BrokerService:
                 row = cursor.fetchone()
                 current_price = row[0] if row else 0
                 
-                if current_price == 0: continue
+                if current_price == 0: 
+                    continue
                 
                 # 2. Calculate P/L for this coin's holdings
                 total_cost = sum(l['usd_value'] for l in lots)
